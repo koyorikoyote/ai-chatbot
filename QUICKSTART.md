@@ -79,7 +79,7 @@ Open 4 separate terminals:
 **Terminal 1 - ChromaDB:**
 
 ```bash
-chroma run --path ./vector-db --port 8000
+chroma run --path ./vector-db --port 8001
 ```
 
 **Terminal 2 - Ollama:**
@@ -174,7 +174,7 @@ ollama list  # Verify it's there
 Restart ChromaDB with correct path:
 
 ```bash
-chroma run --path ./vector-db --port 8000
+chroma run --path ./vector-db --port 8001
 ```
 
 ### "No documents retrieved"

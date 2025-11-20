@@ -174,7 +174,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/var/www/ai-chatbot
-ExecStart=/usr/local/bin/chroma run --path /var/www/ai-chatbot/vector-db --port 8000
+ExecStart=/usr/local/bin/chroma run --path /var/www/ai-chatbot/vector-db --port 8001
 Restart=always
 
 [Install]

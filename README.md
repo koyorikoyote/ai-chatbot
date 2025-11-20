@@ -179,10 +179,10 @@ Follow these steps in order to start all required services:
 Open a terminal and run:
 
 ```bash
-chroma run --path ./vector-db --port 8000
+chroma run --path ./vector-db --port 8001
 ```
 
-ChromaDB will start on `http://localhost:8000`. Keep this terminal open.
+ChromaDB will start on `http://localhost:8001`. Keep this terminal open.
 
 **Alternative using Docker:**
 
@@ -439,9 +439,9 @@ npm run lint
 
 **Solution**:
 
-1. Verify ChromaDB is running: `curl http://localhost:8000/api/v1/heartbeat`
+1. Verify ChromaDB is running: `curl http://localhost:8001/api/v1/heartbeat`
 2. Check the port in `.env` matches ChromaDB port
-3. Restart ChromaDB with correct path: `chroma run --path ./vector-db --port 8000`
+3. Restart ChromaDB with correct path: `chroma run --path ./vector-db --port 8001`
 
 ### Ollama Model Not Found
 

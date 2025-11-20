@@ -23,7 +23,7 @@ Seeds the ChromaDB vector database with sample documentation from the `docs/` di
 
 3. ChromaDB must be running (if using external instance):
    ```bash
-   chroma run --path ./chroma_data --port 8000
+   chroma run --path ./chroma_data --port 8001
    ```
 
 ### Usage

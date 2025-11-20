@@ -96,7 +96,14 @@ export async function chatRoutes(fastify: FastifyInstance) {
           isNewQuestion: result.isNewQuestion,
         });
       } catch (error) {
-        request.log.error({ error }, "Error processing chat request");
+        request.log.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            type: error?.constructor?.name,
+          },
+          "Error processing chat request"
+        );
 
         // Handle specific error types
         if (error instanceof Error) {
