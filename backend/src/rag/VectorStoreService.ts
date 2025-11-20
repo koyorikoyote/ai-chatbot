@@ -44,16 +44,19 @@ export class VectorStoreService {
 
   async initialize(): Promise<void> {
     try {
-      // Initialize documents collection
+      // Initialize documents collection without embedding function
+      // We provide embeddings directly in our calls
       this.documentsCollection = await this.client.getOrCreateCollection({
         name: "documents",
         metadata: { "hnsw:space": "cosine" },
+        embeddingFunction: undefined,
       });
 
-      // Initialize questions collection
+      // Initialize questions collection without embedding function
       this.questionsCollection = await this.client.getOrCreateCollection({
         name: "questions",
         metadata: { "hnsw:space": "cosine" },
+        embeddingFunction: undefined,
       });
     } catch (error) {
       if (error instanceof Error) {

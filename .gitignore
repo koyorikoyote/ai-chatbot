@@ -35,6 +35,7 @@ Thumbs.db
 
 # ChromaDB data
 vector-db/chroma_data/
+chroma_data/
 
 # Test coverage
 coverage/
