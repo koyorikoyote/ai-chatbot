@@ -43,7 +43,7 @@ OLLAMA_TIMEOUT=60000
 
 # ChromaDB Configuration
 CHROMA_HOST=localhost
-CHROMA_PORT=8000
+CHROMA_PORT=8001
 
 # Embedding Configuration
 EMBEDDING_MODEL=qwen2.5:3b
@@ -285,7 +285,7 @@ services:
   chromadb:
     image: chromadb/chroma:latest
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./vector-db:/chroma/chroma
     restart: always
@@ -421,7 +421,7 @@ aws s3 sync frontend/dist/ s3://your-chatbot-widget/ --acl public-read
 curl https://api.yourdomain.com/health
 
 # Check ChromaDB
-curl http://localhost:8000/api/v1/heartbeat
+curl http://localhost:8001/api/v1/heartbeat
 
 # Check Ollama
 ollama list
@@ -503,7 +503,7 @@ if ! curl -f http://localhost:3000/health > /dev/null 2>&1; then
 fi
 
 # Check ChromaDB
-if ! curl -f http://localhost:8000/api/v1/heartbeat > /dev/null 2>&1; then
+if ! curl -f http://localhost:8001/api/v1/heartbeat > /dev/null 2>&1; then
     echo "ChromaDB is down!"
     sudo systemctl restart chromadb
 fi

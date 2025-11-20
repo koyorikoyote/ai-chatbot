@@ -9,7 +9,7 @@ def main():
     print("🚀 Seeding ChromaDB with sample documents\n")
     
     # Connect to ChromaDB
-    client = chromadb.HttpClient(host='localhost', port=8000)
+    client = chromadb.HttpClient(host='localhost', port=8001)
     
     # Get or create documents collection
     print("📦 Creating documents collection...")

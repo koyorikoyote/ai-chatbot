@@ -17,7 +17,7 @@ export const config = {
 
   // ChromaDB
   chromaHost: process.env.CHROMA_HOST || "localhost",
-  chromaPort: parseInt(process.env.CHROMA_PORT || "8000", 10),
+  chromaPort: parseInt(process.env.CHROMA_PORT || "8001", 10),
 
   // RAG
   similarityThreshold: parseFloat(process.env.SIMILARITY_THRESHOLD || "0.88"),

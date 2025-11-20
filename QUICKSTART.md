@@ -130,7 +130,7 @@ Run these commands in separate terminals:
 
 ```bash
 # ChromaDB
-curl http://localhost:8000/api/v1/heartbeat
+curl http://localhost:8001/api/v1/heartbeat
 # Should return: {"nanosecond heartbeat": ...}
 
 # Ollama

@@ -126,7 +126,7 @@ OLLAMA_TIMEOUT=60000
 
 # ChromaDB Configuration
 CHROMA_HOST=localhost
-CHROMA_PORT=8000
+CHROMA_PORT=8001
 
 # Embedding Configuration
 EMBEDDING_MODEL=qwen2.5:3b
@@ -250,7 +250,7 @@ With all services running, you can:
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3000
-- **ChromaDB**: http://localhost:8000
+- **ChromaDB**: http://localhost:8001
 - **Ollama**: http://localhost:11434
 
 ### Hot Reload
