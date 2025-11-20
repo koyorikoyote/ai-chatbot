@@ -13,7 +13,7 @@ Use one of these:
 	Ollama → easiest way to run Qwen / Llama locally
 	llama.cpp → C++ runtime for maximum performance
 	LM Studio → Developer-friendly GUI + local server
-	vLLM (if you have a GPU) → the fastest inference engine
+	vLLM (if we have a GPU) → the fastest inference engine
 
 2. Vector Database (for RAG)
 	ChromaDB (free)
@@ -21,10 +21,10 @@ Use one of these:
 			Install Python (if not already done)
 		>>pip install chromadb
 		>>pip install --upgrade chromadb
-			Use Chroma in your Python/Node backend to store embeddings and query
-			Copy the ChromaDB CLI project to your working directory (https://github.com/flanker/chromadb-admin), then in the CLI folder:
+			Use Chroma in our Python/Node backend to store embeddings and query
+			Copy the ChromaDB CLI project to our working directory (https://github.com/flanker/chromadb-admin), then in the CLI folder:
 		>>npm install
-		>>npm run dev		#open http://localhost:3001 in your browser to see the app
+		>>npm run dev		#open http://localhost:3001 in our browser to see the app
 				or Build and Run with Docker locally:
 				>>docker build -t chromadb-admin .
 				>>docker run -p 3001:3001 chromadb-admin
@@ -33,15 +33,15 @@ Use one of these:
 
 3. Frontend Chat Widget
 	React chat component (e.g., react-chat-elements or custom built)
-	Your frontend sends messages → your backend → LLM → answer → return to UI
+	Our frontend sends messages → our backend → LLM → answer → return to UI
 
 -----
 
 ## How to Get Qwen 2.5 (1.5B / 3B)
 
 # Use Ollama, Ollama supports Qwen 2.5 officially. 
-# Install Ollama on your machine (macOS / Linux / Windows) from their website.  https://ollama.com/download/windows
-# Then, you can run Qwen 2.5 with a command like:
+# Install Ollama on our machine (macOS / Linux / Windows) from their website.  https://ollama.com/download/windows
+# Then, we can run Qwen 2.5 with a command like:
 
 >>ollama run qwen2.5:3b
 	or	 >>ollama run qwen2.5:1.5b
@@ -50,7 +50,7 @@ Use one of these:
 
 ## How to Use These Models Locally (After Download)
 # 1. Using Ollama
-# After installing Ollama, you can pull the model:
+# After installing Ollama, we can pull the model:
 >>ollama pull qwen2.5:3b
 # Then run a local inference server:
 >>ollama serve
@@ -60,10 +60,10 @@ Use one of these:
 # 2. Using llama.cpp with GGUF
 # Download a GGUF version from MyGGUF or Hugging Face. (e.g. the qwen2.5-3B instruct GGUF)
 # Use llama.cpp to run inference:
->>./llama-cli -m /path/to/qwen2.5-3b-instruct-q8_0.gguf -n 512 -p "Your prompt ..."
+>>./llama-cli -m /path/to/qwen2.5-3b-instruct-q8_0.gguf -n 512 -p "Our prompt ..."
 
 # 3. Using OpenAI-compatible API via Ollama
-# Once Ollama is serving, you can call it using an OpenAI-compatible client. For example (in Python):
+# Once Ollama is serving, we can call it using an OpenAI-compatible client. For example (in Python):
 from openai import OpenAI
 client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
 resp = client.chat.completions.create(
@@ -97,3 +97,51 @@ http://localhost:8001
 
 
 
+------
+
+Summary — how the docs/ files are used by this chatbot
+
+- Source-of-truth on disk
+  - The markdown files under ai-chatbot/docs/ are plain source documentation kept on disk (product, services, faq, etc.).
+  - They are not read directly by the chatbot at query time.
+
+- What the seed script (npx / npm run seed-docs) does
+  - scripts/seed-docs.ts:
+    - Recursively finds all .md files in docs/.
+    - Reads each file and builds a Document object { content, title, category, source }.
+    - POSTs that array to the backend endpoint POST /api/documents/index (default API_ENDPOINT http://localhost:3000).
+  - The backend endpoint:
+    - Validates the request.
+    - Uses EmbeddingService to call Ollama to generate an embedding for each document's content.
+    - Uses VectorStoreService to store each document + its embedding + metadata into ChromaDB (collection name "documents").
+  - So "npx tsx scripts/seed-docs.ts" effectively causes the docs/* files to be indexed into the vector DB (ChromaDB) via the backend; it does not directly write files into the DB itself — it goes through the backend API which generates embeddings and writes into ChromaDB.
+
+- How the chatbot uses documentation at runtime
+  - At query time the RAG pipeline:
+    - Embeds the user query (EmbeddingService → Ollama).
+    - Queries ChromaDB (VectorStoreService.searchDocuments) with that query embedding to get the most relevant documents.
+    - Uses the returned document text/metadata as context (prompt) for the LLM to build a response.
+  - The chatbot therefore reads documentation from the vector store (ChromaDB) at runtime — not from the docs/ files.
+
+- Running the seed script
+  - Making the docs/ files available for RAG retrieval, this will index them into the vector DB.
+  - Run seed-docs once after:
+    - ChromaDB is running (chroma run --path ./vector-db --port 8001),
+    - Ollama is running (so embeddings can be generated),
+    - Backend server is running (so POST /api/documents/index is available).
+  - Exceptions:
+    - If the vector DB already contains the same documents (e.g., vector-db/chroma_data already populated), do not need to re-run seeding.
+    - If change or add docs/ files, then should re-run the seed script (or use a custom updater) to refresh the DB.
+  - Practical notes:
+    - The seed script will add new documents — it does not perform deduplication for documents (VectorStoreService.storeDocument/storeDocuments just adds new ids). Re-running the script will create new records unless we clear/update the collection.
+    - The README and QUICKSTART mention deleting the existing vector-db directory before re-seeding if we change embedding dimension or want a clean index.
+
+- Additional operational details / gotchas
+  - Embeddings are generated by Ollama using the configured embedding model and expected dimension (config/ENV). If Ollama is not running or returns wrong-dimension embeddings, seeding will fail.
+  - The seed script calls the backend API; the backend is responsible for validation, embedding generation, and writing to ChromaDB — so the TS script itself is only a client that reads files and asks the backend to index them.
+  - We can view the indexed documents with a Chroma admin UI (the repo contains chromadb-admin-main). The README shows how to run that.
+  - There’s also a Python seeding script (scripts/seed-docs-python.py) present — either script can be used depending on our environment, but both follow the same high-level flow: read docs -> generate embeddings -> store in vector DB.
+
+Next steps for possible improvements:
+- A small improvement to make seeding idempotent (e.g., update-by-source or upsert instead of blind add).
+- To clear or re-index only changed docs.
