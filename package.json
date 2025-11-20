@@ -1,0 +1,27 @@
+{
+  "name": "ai-chatbot",
+  "version": "1.0.0",
+  "description": "AI-powered chatbot widget with RAG pipeline",
+  "type": "module",
+  "scripts": {
+    "seed-docs": "tsx scripts/seed-docs.ts",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:build": "cd backend && npm run build",
+    "backend:start": "cd backend && npm start",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:preview": "cd frontend && npm run preview"
+  },
+  "keywords": [
+    "chatbot",
+    "ai",
+    "rag",
+    "customer-support"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0"
+  }
+}
