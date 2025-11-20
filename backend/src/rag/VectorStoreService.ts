@@ -132,7 +132,7 @@ export class VectorStoreService {
       }
 
       const distance = results.distances?.[0]?.[0];
-      if (distance === undefined) {
+      if (distance === undefined || distance === null) {
         return null;
       }
 

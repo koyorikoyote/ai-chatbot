@@ -19,10 +19,13 @@ export const errorHandler = (
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
+    const errorMessage = error.errors
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join(", ");
     return reply.status(400).send({
       error: {
         code: "VALIDATION_ERROR",
-        message: "Invalid request data",
+        message: `Invalid request data: ${errorMessage}`,
         details: error.errors,
       },
     });

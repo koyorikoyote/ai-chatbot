@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
-    "chromadb": "^1.8.1",
+    "chromadb": "^3.1.5",
+    "chromadb-default-embed": "^2.14.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.25.2",
     "ollama": "^0.5.0",
