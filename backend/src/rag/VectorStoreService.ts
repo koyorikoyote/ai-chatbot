@@ -35,7 +35,7 @@ export class VectorStoreService {
 
   constructor(config: VectorStoreConfig = {}) {
     const host = config.host || process.env.CHROMA_HOST || "localhost";
-    const port = config.port || parseInt(process.env.CHROMA_PORT || "8000", 10);
+    const port = config.port || parseInt(process.env.CHROMA_PORT || "8001", 10);
 
     this.client = new ChromaClient({
       path: `http://${host}:${port}`,
