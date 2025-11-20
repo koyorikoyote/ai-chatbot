@@ -1,0 +1,99 @@
+## Best Model: Qwen2.5 3B (or even 1.5B if ultra-light)
+	Download Qwen2.5 3B Model from HuggingFace:	 	https://huggingface.co/Qwen/Qwen2.5-3B?utm_source=chatgpt.com
+# Inference Runtime: Ollama
+>>ollama run qwen2.5:3b
+
+Model			Speed		Hardware			Accuracy		Best Use
+Qwen2.5 1.5B	⚡⚡⚡	Any laptop			★★★★		Lightweight chatbot
+Qwen2.5 3B	⚡⚡		Low GPU or CPU	★★★★★		Customer support bot
+--------
+#Recommended Stack for a Website Chatbot (Local LLM)
+1. Backend (LLM + RAG)
+Use one of these:
+	Ollama → easiest way to run Qwen / Llama locally
+	llama.cpp → C++ runtime for maximum performance
+	LM Studio → Developer-friendly GUI + local server
+	vLLM (if you have a GPU) → the fastest inference engine
+
+2. Vector Database (for RAG)
+	ChromaDB (free)
+		ChromaDB Local Setup (on Windows)
+			Install Python (if not already done)
+		>>pip install chromadb
+		>>pip install --upgrade chromadb
+			Use Chroma in your Python/Node backend to store embeddings and query
+			Copy the ChromaDB CLI project to your working directory (https://github.com/flanker/chromadb-admin), then in the CLI folder:
+		>>npm install
+		>>npm run dev		#open http://localhost:3001 in your browser to see the app
+				or Build and Run with Docker locally:
+				>>docker build -t chromadb-admin .
+				>>docker run -p 3001:3001 chromadb-admin
+			or >>chroma browse [collection_name] [--local]
+
+
+3. Frontend Chat Widget
+	React chat component (e.g., react-chat-elements or custom built)
+	Your frontend sends messages → your backend → LLM → answer → return to UI
+
+-----
+
+## How to Get Qwen 2.5 (1.5B / 3B)
+
+# Use Ollama, Ollama supports Qwen 2.5 officially. 
+# Install Ollama on your machine (macOS / Linux / Windows) from their website.  https://ollama.com/download/windows
+# Then, you can run Qwen 2.5 with a command like:
+
+>>ollama run qwen2.5:3b
+	or	 >>ollama run qwen2.5:1.5b
+
+--------------
+
+## How to Use These Models Locally (After Download)
+# 1. Using Ollama
+# After installing Ollama, you can pull the model:
+>>ollama pull qwen2.5:3b
+# Then run a local inference server:
+>>ollama serve
+>>ollama run qwen2.5:3b
+	or	 >>ollama run qwen2.5:1.5b		#for the lighter 1.5b model
+
+# 2. Using llama.cpp with GGUF
+# Download a GGUF version from MyGGUF or Hugging Face. (e.g. the qwen2.5-3B instruct GGUF)
+# Use llama.cpp to run inference:
+>>./llama-cli -m /path/to/qwen2.5-3b-instruct-q8_0.gguf -n 512 -p "Your prompt ..."
+
+# 3. Using OpenAI-compatible API via Ollama
+# Once Ollama is serving, you can call it using an OpenAI-compatible client. For example (in Python):
+from openai import OpenAI
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+resp = client.chat.completions.create(
+  model="qwen2.5:3b",
+  messages=[{"role":"user","content":"Hello"}]
+)
+print(resp.choices[0].message.content)
+
+--------------------------
+## To run:
+# Make sure to run this in backend first:
+>>npm install chromadb@latest
+	*might also need to "npm install" in \ai-chatbot\ directory
+# And in ai-chatbot directory
+>>npx tsx scripts\seed-docs.ts
+
+# 1. Start the chroma db server in a new shell (if not running):
+>>chroma run --path ./chroma_data --port 8001
+
+# 2. Start both ai-chatbot/backend and ai-chatbot/frontend
+>>npm run dev
+
+-------
+
+## To view the ChromaDB database:
+cd chromadb-admin-main
+npm run dev
+# open in browser http://localhost:3001   (after it finishes loading)
+# Enter in Chroma connection string 
+http://localhost:8001
+
+
+
