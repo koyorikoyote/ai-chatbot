@@ -110,7 +110,7 @@ This is the easiest way to integrate RVC into a chatbot.
 
 Runs with GPU, multilingual. Download and install:
 
-UI and for XTTSv2 :
+UI and for XTTSv2 : Git clone from:
 https://github.com/BoltzmannEntropy/xtts2-ui
 
 ---
@@ -121,9 +121,8 @@ https://github.com/BoltzmannEntropy/xtts2-ui
 2. Extract
 3. Run:
 
-```
-go-rvc.bat
-```
+>>go-rvc.bat
+
 
 Directory looks like:
 
@@ -152,10 +151,7 @@ RVC/
 ## Step 4 — Connect RVC to Node.js (API Mode)
 
 You can run RVC as an API server:
-
-```
-python api.py --port 9000
-```
+>>python api.py --port 9000
 
 Then in Node.js:
 
@@ -171,4 +167,23 @@ const response = await fetch("http://localhost:9000/convert", {
 const converted = await response.arrayBuffer();
 fs.writeFileSync("final_voice.wav", Buffer.from(converted));
 ```
+---
+# For XTTS2:
+>>git clone https://github.com/pbanuru/xtts2-ui.git
+>>cd xtts2-ui
+# Run the following command to create a Python virtual environment: 
+>>python -m venv venv
+# cmd prompt
+>>venv\Scripts\activate
+>>pip install TTS
+>>pip install gradio
 
+Install japanese dictionary:
+# Lite version
+>>pip install fugashi[unidic-lite]
+# Full version
+>>pip install fugashi[unidic]
+>>python -m unidic download
+
+# To run the application:
+>>python app.py
