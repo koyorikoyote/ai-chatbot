@@ -106,25 +106,12 @@ This is the easiest way to integrate RVC into a chatbot.
 
 ## Step 1 — Install TTS Engine
 
-Pick one:
-
-### **Edge TTS (good quality, fast)**
-
-```
-npm install edge-tts
-```
-
-### **Coqui TTS (open-source)**
-
-Run locally:
-
-```
-pip install TTS
-```
-
 ### **XTTS v2 (best open-source TTS)**
 
-Runs with GPU, multilingual.
+Runs with GPU, multilingual. Download and install:
+
+UI and for XTTSv2 :
+https://github.com/BoltzmannEntropy/xtts2-ui
 
 ---
 
