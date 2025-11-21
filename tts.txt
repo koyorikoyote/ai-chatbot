@@ -1,0 +1,187 @@
+**RVC = Retrieval-based Voice Conversion**, a model architecture used for **voice cloning** — but NOT in the same way as traditional TTS (Text-to-Speech).
+
+It does **voice conversion**, not **text generation**.
+
+### **What it does**
+
+* You **input audio** (your voice or the bot’s spoken output)
+* RVC **converts the voice** to sound like a target speaker you trained
+* The **prosody, pauses, intonation** come from the input audio
+* The **timbre** becomes the cloned voice
+
+###  RVC ≠ TTS
+
+| Feature  | TTS (Text → Speech) | RVC (Voice Conversion)       |
+| -------- | ------------------- | ---------------------------- |
+| Input    | Text                | Audio                        |
+| Output   | Synthetic speech    | Transformed speech           |
+| Prosody  | AI-generated        | From input audio             |
+| Use-case | Narration, chatbots | Voice-dubbing, voice cloning |
+
+**For a chatbot, you'd combine TTS + RVC**, like this:
+
+**Text → TTS → Audio → RVC Voice Clone → Final Voice**
+
+---
+
+#  How a Voice Chatbot System Looks with RVC
+
+### LLM generates text
+
+(Qwen2.5 3B running locally)
+
+### TTS synthesizes speech
+
+(e.g., **OpenAI TTS**, **Edge TTS**, **Coqui TTS**, or **XTTS v2**)
+
+### RVC converts speech into cloned voice
+
+You run RVC as a model, feed TTS output → get voice-cloned version.
+
+### Play / stream audio in the browser
+
+(React frontend)
+
+---
+
+# RVC Technology Overview (simple)
+
+* RVC uses:
+
+  * **Content encoder (HuBERT/WAV2VEC)** → extracts linguistic features
+  * **Pitch extractor (Harvest/PM)**
+  * **Neural vocoder (NSF-based)**
+* It trains on **clean 5–10 minutes of a target speaker’s voice**
+* Training typically completes in **5–20 minutes** on a GPU
+
+---
+
+# Tools You Need
+
+## Recommended: **RVC WebUI (by RVC-Project / Mangio-RVC-Fork)**
+
+Runs on Windows directly, includes everything:
+
+* GUI for training
+* Model export
+* Real-time voice conversion
+* API mode available
+* Supports local TTS + piping through RVC
+
+This is the easiest way to integrate RVC into a chatbot.
+
+---
+
+# Architecture for Your Voice Chatbot (Using RVC)
+
+```
+[React Chat UI]
+       ↓
+[Node.js Backend]
+       ↓
+[Qwen2.5 3B via Ollama]
+       ↓
+[Text Response]
+       ↓
+[TTS Engine (Edge TTS / Coqui / XTTS)]
+       ↓
+[Audio Output]
+       ↓
+[RVC Server / API for Voice Conversion]
+       ↓
+[Final Cloned Voice Audio (.wav)]
+       ↓
+[Frontend audio player]
+```
+
+### Why this works well:
+
+* TTS gives smooth conversational prosody
+* RVC gives cloned identity
+* Combining them solves the weaknesses of both systems
+
+---
+
+# Proof-of-Concept Setup
+
+## Step 1 — Install TTS Engine
+
+Pick one:
+
+### **Edge TTS (good quality, fast)**
+
+```
+npm install edge-tts
+```
+
+### **Coqui TTS (open-source)**
+
+Run locally:
+
+```
+pip install TTS
+```
+
+### **XTTS v2 (best open-source TTS)**
+
+Runs with GPU, multilingual.
+
+---
+
+## Step 2 — Install RVC WebUI (Windows)
+
+1. Download RVC WebUI from GitHub
+2. Extract
+3. Run:
+
+```
+go-rvc.bat
+```
+
+Directory looks like:
+
+```
+RVC/
+ ├─ logs/ (training data)
+ ├─ checkpoints/ (trained voices)
+ ├─ assets/
+ ├─ rvc.exe
+```
+
+---
+
+## Step 3 — Train Your Voice Clone
+
+1. Prepare **5–10 minutes** of clean voice audio
+2. Import into RVC WebUI
+3. Train using:
+
+   * **40k steps** (fast)
+   * **Hubert model**
+4. Export `.pth` model
+
+---
+
+## Step 4 — Connect RVC to Node.js (API Mode)
+
+You can run RVC as an API server:
+
+```
+python api.py --port 9000
+```
+
+Then in Node.js:
+
+```ts
+const form = new FormData();
+form.append("audio", fs.createReadStream("tts_output.wav"));
+
+const response = await fetch("http://localhost:9000/convert", {
+  method: "POST",
+  body: form
+});
+
+const converted = await response.arrayBuffer();
+fs.writeFileSync("final_voice.wav", Buffer.from(converted));
+```
+

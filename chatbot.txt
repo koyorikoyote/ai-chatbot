@@ -145,3 +145,15 @@ Summary — how the docs/ files are used by this chatbot
 Next steps for possible improvements:
 - A small improvement to make seeding idempotent (e.g., update-by-source or upsert instead of blind add).
 - To clear or re-index only changed docs.
+- TTS (text-to-speech): commercial TTS (Azure, ElevenLabs, Google, Amazon) or custom voice models (RVC (Retrieval-based Voice Conversion) / voice cloning) to produce an avatar voice.
+- Avatar rendering: Live2D for 2D VTubers or Unity/VRM/3D pipelines for 3D avatars; animation driven by the bot’s “lines” and small lip/viseme syncs.
+
+---For AWS---:
+-Component-		-Where to Host-
+Qwen2.5 3B		EC2 GPU or CPU (3B is OK on CPU)
+ChromaDB			AWS ECS Fargate or EC2
+TTS				ECS or Lambda
+RVC				GPU EC2 (g4dn)
+Node.js API		ECS or EC2
+Static React site	S3 + CloudFront
+
