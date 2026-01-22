@@ -179,7 +179,15 @@ Follow these steps in order to start all required services:
 Open a terminal and run:
 
 ```bash
-chroma run --path ./vector-db --port 8001
+cd ai-chatbot/backend
+chroma run --path ./chroma_data --port 8001
+```
+
+Open the chromadb UI interface:
+```bash
+cd chromadb-admin-main
+npm install
+npm run dev
 ```
 
 ChromaDB will start on `http://localhost:8001`. Keep this terminal open.
