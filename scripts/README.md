@@ -31,7 +31,20 @@ Seeds the ChromaDB vector database with sample documentation from the `docs/` di
 From the project root:
 
 ```bash
-npm run seed-docs
+cd ai-chatbot/scripts
+npx tsx seed-docs.ts
+
+```
+
+If timeout error occurs due to embeddings mismatch:
+```bash
+# 1. Reset ChromaDB
+cd backend
+npx tsx reset-chromadb.ts
+
+# 2. Reseed with JavaScript
+cd ../scripts
+npx tsx seed-docs.ts
 ```
 
 Or directly with tsx:

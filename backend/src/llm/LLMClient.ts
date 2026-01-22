@@ -21,7 +21,7 @@ export class LLMClient {
       host: config.host || process.env.OLLAMA_HOST || "http://localhost:11434",
     });
     this.model = config.model || process.env.OLLAMA_MODEL || "qwen2.5:3b";
-    this.timeout = config.timeout || 60000; // 60 seconds default
+    this.timeout = config.timeout || 120000; // 120 seconds default (increased for RAG prompts)
   }
 
   async generate(
@@ -60,7 +60,7 @@ export class LLMClient {
         ) {
           throw new Error(
             "Failed to connect to Ollama service. Ensure Ollama is running at " +
-              (process.env.OLLAMA_HOST || "http://localhost:11434")
+            (process.env.OLLAMA_HOST || "http://localhost:11434")
           );
         }
         throw new Error(`LLM generation failed: ${error.message}`);
@@ -97,7 +97,7 @@ export class LLMClient {
         ) {
           throw new Error(
             "Failed to connect to Ollama service. Ensure Ollama is running at " +
-              (process.env.OLLAMA_HOST || "http://localhost:11434")
+            (process.env.OLLAMA_HOST || "http://localhost:11434")
           );
         }
         throw new Error(`LLM streaming failed: ${error.message}`);

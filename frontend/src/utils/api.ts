@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-const DEFAULT_TIMEOUT = 60000; // 60 seconds
+const DEFAULT_TIMEOUT = 120000; // 120 seconds (increased for RAG processing)
 
 export async function sendMessage(
   apiEndpoint: string,
@@ -44,7 +44,7 @@ export async function sendMessage(
       const errorData = await response.json().catch(() => ({}));
       throw new ApiError(
         errorData.error?.message ||
-          `Request failed with status ${response.status}`,
+        `Request failed with status ${response.status}`,
         response.status
       );
     }
