@@ -11,15 +11,19 @@ const fastify = Fastify({
     transport:
       config.nodeEnv === "development"
         ? {
-            target: "pino-pretty",
-            options: {
-              colorize: true,
-              translateTime: "HH:MM:ss Z",
-              ignore: "pid,hostname",
-            },
-          }
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname",
+          },
+        }
         : undefined,
   },
+  // Increase timeouts for long-running LLM requests
+  connectionTimeout: 180000, // 3 minutes
+  keepAliveTimeout: 180000, // 3 minutes
+  requestTimeout: 180000, // 3 minutes
 });
 
 // Register CORS

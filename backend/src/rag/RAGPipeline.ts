@@ -104,36 +104,34 @@ export class RAGPipeline {
     documents: DocumentResult[],
     conversationHistory: Message[]
   ): string {
-    // Build context from retrieved documents
+    // Build context from retrieved documents (truncate each doc to 500 chars for speed)
     const context = documents
       .map((doc, index) => {
-        return `Document ${index + 1} (${doc.metadata.title}):\n${doc.content}`;
+        const truncatedContent = doc.content.length > 500
+          ? doc.content.substring(0, 500) + "..."
+          : doc.content;
+        return `[${index + 1}] ${doc.metadata.title}:\n${truncatedContent}`;
       })
       .join("\n\n");
 
-    // Build conversation history with truncation
-    const truncatedHistory =
-      this.truncateConversationHistory(conversationHistory);
-    const historyText = truncatedHistory
-      .map((msg) => {
-        const role = msg.role === "user" ? "User" : "Assistant";
-        return `${role}: ${msg.content}`;
-      })
+    // Build conversation history with truncation (last 2 exchanges only)
+    const recentHistory = conversationHistory.slice(-4); // Last 2 Q&A pairs
+    const historyText = recentHistory
+      .map((msg) => `${msg.role === "user" ? "Q" : "A"}: ${msg.content}`)
       .join("\n");
 
-    // Construct the full prompt
-    let prompt =
-      "You are a helpful customer support assistant. Answer the user's question based on the provided context.\n\n";
+    // Construct a concise prompt for faster generation
+    let prompt = "You are a helpful assistant. Answer concisely based on the context.\n\n";
 
     if (context) {
       prompt += `Context:\n${context}\n\n`;
     }
 
     if (historyText) {
-      prompt += `Conversation History:\n${historyText}\n\n`;
+      prompt += `Recent:\n${historyText}\n\n`;
     }
 
-    prompt += `User Question: ${query}\n\nAnswer:`;
+    prompt += `Question: ${query}\n\nAnswer:`;
 
     return prompt;
   }

@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-const DEFAULT_TIMEOUT = 120000; // 120 seconds (increased for RAG processing)
+const DEFAULT_TIMEOUT = 180000; // 180 seconds (3 minutes for LLM processing)
 
 export async function sendMessage(
   apiEndpoint: string,

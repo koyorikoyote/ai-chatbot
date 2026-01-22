@@ -70,8 +70,8 @@ export async function chatRoutes(fastify: FastifyInstance) {
         // Get RAG pipeline instance
         const pipeline = await getRAGPipeline();
 
-        // Process query
-        const result = await pipeline.processQuery(message, sessionId);
+        // Process query (convert null to undefined for sessionId)
+        const result = await pipeline.processQuery(message, sessionId ?? undefined);
 
         request.log.info(
           {

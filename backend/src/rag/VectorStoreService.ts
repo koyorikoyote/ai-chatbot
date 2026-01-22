@@ -1,9 +1,9 @@
-import { ChromaClient, Collection, IEmbeddingFunction } from "chromadb";
+import { ChromaClient, Collection, EmbeddingFunction } from "chromadb";
 import { v4 as uuidv4 } from "uuid";
 
 // No-op embedding function - we provide embeddings directly
-class NoOpEmbeddingFunction implements IEmbeddingFunction {
-    async generate(texts: string[]): Promise<number[][]> {
+class NoOpEmbeddingFunction implements EmbeddingFunction {
+    async generate(_texts: string[]): Promise<number[][]> {
         throw new Error("Embeddings must be provided directly");
     }
 }
