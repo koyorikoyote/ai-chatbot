@@ -533,6 +533,11 @@ npm run lint
 - [Fastify Documentation](https://www.fastify.io/)
 - [React Documentation](https://react.dev/)
 
-## License
+## Quick Run steps
+1. cd ai-chatbot/backend; chroma run --path ./chroma_data --port 8001
+2. cd ai-chatbot/backend; npm run dev
+3a. cd ai-chatbot/backend; npx tsx reset-chromadb.ts
+3b. cd ai-chatbot/scripts; npx tsx seed-docs.ts
+4. cd chromadb-admin-main; npm run dev
+5. cd ai-chatbot/frontend; npm run dev
 
-MIT
