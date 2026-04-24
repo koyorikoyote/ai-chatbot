@@ -54,15 +54,20 @@ export class VectorStoreService {
             const embeddingFunction = new NoOpEmbeddingFunction();
 
             // Get or create collections with no-op embedding function
+            const collectionMetadata = {
+                "hnsw:space": "cosine",
+                embedding_function: "external:nomic-embed-text",
+            };
+
             this.documentsCollection = await this.client.getOrCreateCollection({
                 name: "documents",
-                metadata: { "hnsw:space": "cosine" },
+                metadata: collectionMetadata,
                 embeddingFunction,
             });
 
             this.questionsCollection = await this.client.getOrCreateCollection({
                 name: "questions",
-                metadata: { "hnsw:space": "cosine" },
+                metadata: collectionMetadata,
                 embeddingFunction,
             });
         } catch (error) {

@@ -17,10 +17,10 @@ export class EmbeddingService {
     this.ollama = new Ollama({
       host: config.host || process.env.OLLAMA_HOST || "http://localhost:11434",
     });
-    this.model = config.model || process.env.EMBEDDING_MODEL || "qwen2.5:3b";
+    this.model = config.model || process.env.EMBEDDING_MODEL || "nomic-embed-text";
     this.expectedDimension =
       config.expectedDimension ||
-      parseInt(process.env.EMBEDDING_DIMENSION || "1024", 10);
+      parseInt(process.env.EMBEDDING_DIMENSION || "768", 10);
   }
 
   async embed(text: string): Promise<number[]> {

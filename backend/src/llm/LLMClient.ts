@@ -20,7 +20,7 @@ export class LLMClient {
     this.ollama = new Ollama({
       host: config.host || process.env.OLLAMA_HOST || "http://localhost:11434",
     });
-    this.model = config.model || process.env.OLLAMA_MODEL || "qwen2.5:3b";
+    this.model = config.model || process.env.OLLAMA_MODEL || "gemma4:e2b";
     this.timeout = config.timeout || 150000; // 150 seconds (2.5 minutes) for LLM generation
   }
 
@@ -41,14 +41,13 @@ export class LLMClient {
         model: this.model,
         messages: [{ role: "user", content: prompt }],
         stream: false,
+        think: "low",
+        keep_alive: "30m",
         options: {
-          // Performance optimizations
-          temperature: options.temperature ?? 0.7, // Lower = faster, more deterministic
-          num_predict: options.maxTokens ?? 256, // Limit response length (was unlimited)
-          top_k: 40, // Reduce sampling space
-          top_p: 0.9, // Nucleus sampling
-          num_ctx: 4096, // Reduce context window from 32K to 4K for speed
-          num_thread: 8, // Use 8 CPU threads (adjust based on your CPU)
+          temperature: options.temperature ?? 0,
+          num_predict: options.maxTokens ?? 512,
+          num_ctx: 2048,
+          num_thread: 6,
         },
       });
 
@@ -88,14 +87,13 @@ export class LLMClient {
         model: this.model,
         messages: [{ role: "user", content: prompt }],
         stream: true,
+        think: "low",
+        keep_alive: "30m",
         options: {
-          // Same performance optimizations as generate()
-          temperature: options.temperature ?? 0.7,
-          num_predict: options.maxTokens ?? 256,
-          top_k: 40,
-          top_p: 0.9,
-          num_ctx: 4096,
-          num_thread: 8,
+          temperature: options.temperature ?? 0,
+          num_predict: options.maxTokens ?? 512,
+          num_ctx: 2048,
+          num_thread: 6,
         },
       });
 

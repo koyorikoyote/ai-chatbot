@@ -152,4 +152,92 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }
     }
   );
+
+  // POST /api/chat/stream - Stream response via Server-Sent Events
+  fastify.post(
+    "/api/chat/stream",
+    {
+      preHandler: rateLimitMiddleware,
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const validatedBody = chatRequestSchema.parse(request.body);
+      const { message, sessionId } = validatedBody;
+
+      request.log.info(
+        { sessionId, messageLength: message.length },
+        "Processing streaming chat request"
+      );
+
+      const pipeline = await getRAGPipeline();
+
+      // Build CORS headers manually — reply.hijack() bypasses @fastify/cors's
+      // onSend hook, so Access-Control-Allow-Origin is never added otherwise
+      // and the browser silently rejects the response.
+      const origin = request.headers.origin;
+      const corsHeaders: Record<string, string> = {};
+      if (origin) {
+        corsHeaders["Access-Control-Allow-Origin"] = origin;
+        corsHeaders["Access-Control-Allow-Credentials"] = "true";
+        corsHeaders["Vary"] = "Origin";
+      }
+
+      reply.hijack();
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+        ...corsHeaders,
+      });
+
+      const send = (event: string, data: unknown) => {
+        reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+
+      let clientClosed = false;
+      request.raw.on("close", () => {
+        clientClosed = true;
+      });
+
+      try {
+        for await (const part of pipeline.processQueryStream(
+          message,
+          sessionId ?? undefined
+        )) {
+          if (clientClosed) break;
+          if (part.isComplete && part.metadata) {
+            send("done", {
+              sessionId: part.metadata.sessionId,
+              isNewQuestion: part.metadata.isNewQuestion,
+              sources: part.metadata.sources.map((source) => ({
+                title: source.metadata.title,
+                content: source.content,
+                score: source.score,
+                category: source.metadata.category,
+                source: source.metadata.source,
+              })),
+            });
+          } else if (part.chunk) {
+            send("chunk", { text: part.chunk });
+          }
+        }
+      } catch (error) {
+        request.log.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+          "Error processing streaming chat request"
+        );
+        if (!clientClosed) {
+          send("error", {
+            message:
+              error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      } finally {
+        if (!clientClosed) reply.raw.end();
+      }
+    }
+  );
 }

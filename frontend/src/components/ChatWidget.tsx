@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChatWidgetProps, Message } from '../types/chat';
 import ChatButton from './ChatButton.tsx';
 import ChatDialog from './ChatDialog.tsx';
-import { sendMessage, ApiError } from '../utils/api';
+import { sendMessageStream, ApiError } from '../utils/api';
 import { retrieveSession, storeSession } from '../utils/sessionStorage';
 
 const ChatWidget = ({
@@ -40,32 +40,54 @@ const ChatWidget = ({
             timestamp: new Date(),
         };
 
-        setMessages((prev) => [...prev, userMessage]);
+        const assistantId = (Date.now() + 1).toString();
+        setMessages((prev) => [
+            ...prev,
+            userMessage,
+            {
+                id: assistantId,
+                role: 'assistant',
+                content: '',
+                timestamp: new Date(),
+            },
+        ]);
 
         try {
-            const data = await sendMessage(apiEndpoint, {
-                message: content,
-                sessionId,
-            });
-
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.response,
-                timestamp: new Date(),
-                sources: data.sources,
-            };
-
-            setMessages((prev) => [...prev, assistantMessage]);
-
-            // Store session ID in state and localStorage
-            setSessionId(data.sessionId);
-            storeSession(data.sessionId);
+            await sendMessageStream(
+                apiEndpoint,
+                { message: content, sessionId },
+                {
+                    onChunk: (text) => {
+                        setMessages((prev) =>
+                            prev.map((m) =>
+                                m.id === assistantId
+                                    ? { ...m, content: m.content + text }
+                                    : m
+                            )
+                        );
+                    },
+                    onDone: (meta) => {
+                        setMessages((prev) =>
+                            prev.map((m) =>
+                                m.id === assistantId
+                                    ? { ...m, sources: meta.sources }
+                                    : m
+                            )
+                        );
+                        setSessionId(meta.sessionId);
+                        storeSession(meta.sessionId);
+                    },
+                }
+            );
         } catch (err) {
+            setMessages((prev) =>
+                prev.filter((m) => !(m.id === assistantId && m.content === ''))
+            );
+            console.error('Chat stream failed:', err);
             if (err instanceof ApiError) {
                 setError(err.message);
             } else if (err instanceof Error) {
-                setError('Something went wrong. Please try again.');
+                setError(err.message || 'Something went wrong. Please try again.');
             } else {
                 setError('An unexpected error occurred. Please try again.');
             }

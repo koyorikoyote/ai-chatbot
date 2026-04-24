@@ -9,11 +9,11 @@ export const config = {
 
   // Ollama
   ollamaHost: process.env.OLLAMA_HOST || "http://localhost:11434",
-  ollamaModel: process.env.OLLAMA_MODEL || "qwen2.5:3b",
+  ollamaModel: process.env.OLLAMA_MODEL || "gemma4:e2b",
 
   // Embedding
-  embeddingModel: process.env.EMBEDDING_MODEL || "qwen2.5:3b",
-  embeddingDimension: parseInt(process.env.EMBEDDING_DIMENSION || "1024", 10),
+  embeddingModel: process.env.EMBEDDING_MODEL || "nomic-embed-text",
+  embeddingDimension: parseInt(process.env.EMBEDDING_DIMENSION || "768", 10),
 
   // ChromaDB
   chromaHost: process.env.CHROMA_HOST || "localhost",

@@ -1,6 +1,6 @@
 # AI Chatbot Widget
 
-An embeddable AI-powered chatbot widget that leverages a local Qwen2.5-3B language model with RAG (Retrieval-Augmented Generation) for accurate, context-aware responses based on company documentation.
+An embeddable AI-powered chatbot widget that leverages a local `gemma4:e2b` language model (with `nomic-embed-text` for embeddings) and RAG (Retrieval-Augmented Generation) for accurate, context-aware responses based on company documentation. Answers stream token-by-token over Server-Sent Events so users see output immediately.
 
 ## Table of Contents
 
@@ -11,6 +11,8 @@ An embeddable AI-powered chatbot widget that leverages a local Qwen2.5-3B langua
 - [Starting Services](#starting-services)
 - [Development](#development)
 - [Seeding Documentation](#seeding-documentation)
+- [Chat API & Streaming](#chat-api--streaming)
+- [LLM Performance Tuning](#llm-performance-tuning)
 - [Embedding the Widget](#embedding-the-widget)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -77,15 +79,19 @@ Download and install from [https://ollama.ai](https://ollama.ai)
 curl https://ollama.ai/install.sh | sh
 ```
 
-### 3. Pull Qwen2.5-3B Model
+### 3. Pull the Required Models
 
-After installing Ollama, pull the required model:
+After installing Ollama, pull the chat model and the embedding model. The chat model is a reasoning (thinking) model — the backend runs it with `think: "low"` so it does minimal reasoning before answering.
 
 ```bash
-ollama pull qwen2.5:3b
+# Chat / reasoning model (~7 GB, 5.1B parameters)
+ollama pull gemma4:e2b
+
+# Embedding model (~274 MB, 768-dim)
+ollama pull nomic-embed-text
 ```
 
-This will download the Qwen2.5-3B model (approximately 2GB).
+Both models are required. `gemma4:e2b` handles chat; `nomic-embed-text` converts documents and queries into vectors for ChromaDB. Do not use a chat model for embeddings — Ollama will reject it with `"this model does not support embeddings"`.
 
 ### 4. Install ChromaDB
 
@@ -121,16 +127,17 @@ PORT=3000
 
 # Ollama Configuration
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=qwen2.5:3b
-OLLAMA_TIMEOUT=60000
+OLLAMA_MODEL=gemma4:e2b
 
 # ChromaDB Configuration
 CHROMA_HOST=localhost
 CHROMA_PORT=8001
 
 # Embedding Configuration
-EMBEDDING_MODEL=qwen2.5:3b
-EMBEDDING_DIMENSION=1024
+# IMPORTANT: Must be a dedicated embedding model, not a chat model.
+# Dimension must match the model (nomic-embed-text = 768).
+EMBEDDING_MODEL=nomic-embed-text
+EMBEDDING_DIMENSION=768
 
 # RAG Configuration
 SIMILARITY_THRESHOLD=0.88
@@ -174,6 +181,11 @@ VITE_WIDGET_TITLE=Chat Support
 
 Follow these steps in order to start all required services:
 
+# Wipe old chroma collection if needed
+```bash
+rm -rf ai-chatbot/backend/chroma_data
+```
+
 ### 1. Start ChromaDB
 
 Open a terminal and run:
@@ -214,7 +226,7 @@ Ollama will start on `http://localhost:11434`. Keep this terminal open.
 ollama list
 ```
 
-You should see `qwen2.5:3b` in the list.
+You should see both `gemma4:e2b` and `nomic-embed-text` in the list.
 
 ### 3. Start Backend Server
 
@@ -298,11 +310,10 @@ Make sure all services are running, then execute:
 npm run seed-docs
 ```
 
-Or run directly:
+Or run directly (from the `ai-chatbot` project root):
 
 ```bash
-cd scripts
-npx ts-node seed-docs.ts
+npx tsx scripts/seed-docs.ts
 ```
 
 The script will:
@@ -323,6 +334,65 @@ Processing: docs/faq/general.md
 Successfully indexed 15 documents
 Failed: 0 documents
 ```
+
+## Chat API & Streaming
+
+The backend exposes two chat endpoints:
+
+| Endpoint                | Transport         | When to use                                             |
+| ----------------------- | ----------------- | ------------------------------------------------------- |
+| `POST /api/chat`        | JSON (buffered)   | Scripts, server-to-server calls, non-browser clients    |
+| `POST /api/chat/stream` | Server-Sent Events | Browser / widget — tokens render as they are generated  |
+
+**Request body (both endpoints):**
+
+```json
+{ "message": "How much does Pro cost?", "sessionId": "optional-session-id" }
+```
+
+**`/api/chat/stream` event types:**
+
+- `event: chunk` — `{ "text": "..." }` for each generated fragment
+- `event: done` — `{ "sessionId", "isNewQuestion", "sources": [...] }` when generation finishes
+- `event: error` — `{ "message": "..." }` if something fails mid-stream
+
+The React widget (`ChatWidget.tsx`) uses the streaming endpoint via `sendMessageStream` in [`frontend/src/utils/api.ts`](frontend/src/utils/api.ts). It inserts an empty assistant bubble when the request starts, appends each `chunk.text` in place, and attaches sources on `done`. Client disconnect is handled on the backend — if the browser aborts, the generator stops cleanly.
+
+**Curl example:**
+
+```bash
+curl -N -X POST http://localhost:3000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What is your refund policy?"}'
+```
+
+## LLM Performance Tuning
+
+All knobs live in [`backend/src/llm/LLMClient.ts`](backend/src/llm/LLMClient.ts) and are applied to both `generate` (non-streaming) and `generateStream`.
+
+**Current defaults, and why:**
+
+| Option         | Value    | Notes                                                                                           |
+| -------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `think`        | `"low"`  | `gemma4:e2b` is a reasoning model. `"low"` keeps chain-of-thought minimal. `false` disables it. |
+| `keep_alive`   | `"30m"`  | Keeps the model resident in memory, avoiding the ~14 s cold-load on idle requests.              |
+| `num_predict`  | `512`    | Upper bound on generated tokens (includes any thinking budget at `think: "low"`).               |
+| `num_ctx`      | `2048`   | Context window — matches the actual prompt size. Smaller = less KV-cache, faster prompt eval.   |
+| `num_thread`   | `6`      | CPU threads. Best ≈ physical core count; higher values usually hurt from hyperthread contention. |
+| `temperature`  | `0`      | Deterministic, fastest sampling. Raise to `0.3–0.7` for more varied answers.                    |
+
+**Levers to turn if you need more speed:**
+
+- **GPU offload** — if you have an NVIDIA GPU, add `num_gpu: 999` to the `options` object to force all layers to GPU. Typically 5–10× faster than CPU.
+- **Bigger reasoning model** — `gemma4:e4b` (8 B) has slightly sharper answers but is roughly 2× slower on CPU than `e2b` (5.1 B) for equivalent prompts. Switch via `OLLAMA_MODEL=gemma4:e4b`.
+- **Non-reasoning model** — switch to something like `llama3.1:8b` to drop the thinking budget entirely. Faster, but `think` no longer applies.
+- **Raise `num_thread`** up to physical core count if you're CPU-only and have spare cores.
+
+**Levers to turn if you need smarter answers:**
+
+- Raise `think` to `"medium"` or `"high"` — more reasoning, slower responses.
+- Raise `temperature` (drop `0` → `0.3–0.7`) and re-add `top_k: 40`, `top_p: 0.9` for more diverse generation.
+- Raise `num_ctx` to 4096+ if you want to pack more retrieved documents into the prompt.
 
 ## Embedding the Widget
 
@@ -447,19 +517,40 @@ npm run lint
 
 **Solution**:
 
-1. Verify ChromaDB is running: `curl http://localhost:8001/api/v1/heartbeat`
+1. Verify ChromaDB is running: `curl http://localhost:8001/api/v2/heartbeat` (the v1 API is deprecated in current ChromaDB builds)
 2. Check the port in `.env` matches ChromaDB port
-3. Restart ChromaDB with correct path: `chroma run --path ./vector-db --port 8001`
+3. Restart ChromaDB with correct path: `chroma run --path ./chroma_data --port 8001`
 
 ### Ollama Model Not Found
 
-**Problem**: Error "model not found: qwen2.5:3b"
+**Problem**: Error "model not found: gemma4:e2b"
 
 **Solution**:
 
-1. Pull the model: `ollama pull qwen2.5:3b`
+1. Pull the model: `ollama pull gemma4:e2b`
 2. Verify model is available: `ollama list`
-3. Check model name in `.env` matches exactly
+3. Check `OLLAMA_MODEL` in `.env` matches exactly
+
+### "this model does not support embeddings"
+
+**Problem**: Chat requests fail with `Failed to generate embedding after 3 attempts: this model does not support embeddings`
+
+**Cause**: `EMBEDDING_MODEL` is set to a chat model (e.g. `gemma4:e2b`). Chat models cannot serve embeddings.
+
+**Solution**:
+
+1. Set `EMBEDDING_MODEL=nomic-embed-text` and `EMBEDDING_DIMENSION=768` in `backend/.env`
+2. Pull the embedding model if needed: `ollama pull nomic-embed-text`
+3. Wipe any ChromaDB collections created with the wrong dimension: `rm -rf ai-chatbot/backend/chroma_data`
+4. Restart the backend and re-seed
+
+### "Empty response from LLM"
+
+**Problem**: Backend logs `LLM generation failed: Empty response from LLM` after a long wait.
+
+**Cause**: Reasoning models like `gemma4:e2b` put their chain-of-thought in a separate `thinking` field. With unbounded thinking, the model can exhaust `num_predict` before writing anything to `content`.
+
+**Solution**: The backend already passes `think: "low"` to keep reasoning tight. If you still see this error, raise `num_predict` in [`backend/src/llm/LLMClient.ts`](backend/src/llm/LLMClient.ts) or lower the think level further (`think: false` disables reasoning entirely).
 
 ### Ollama Connection Timeout
 
@@ -468,7 +559,7 @@ npm run lint
 **Solution**:
 
 1. Verify Ollama is running: `ollama list`
-2. Increase timeout in `.env`: `OLLAMA_TIMEOUT=120000`
+2. Adjust `timeout` in `LLMClient` constructor (default 150000 ms) if generation truly needs more time
 3. Check Ollama logs for errors
 4. Restart Ollama service: `ollama serve`
 
@@ -478,9 +569,9 @@ npm run lint
 
 **Solution**:
 
-1. Delete existing collections: Remove `vector-db/` directory
-2. Verify embedding model in `.env`
-3. Re-run seed script: `npm run seed-docs`
+1. Delete existing collections: `rm -rf backend/chroma_data`
+2. Verify `EMBEDDING_MODEL` and `EMBEDDING_DIMENSION` in `backend/.env` match the model (e.g. `nomic-embed-text` → 768)
+3. Re-run seed script: `npx tsx scripts/seed-docs.ts`
 
 ### CORS Errors
 
@@ -528,16 +619,24 @@ npm run lint
 ## Additional Resources
 
 - [Ollama Documentation](https://github.com/ollama/ollama)
+- [Ollama Library (models)](https://ollama.com/library)
 - [ChromaDB Documentation](https://docs.trychroma.com/)
-- [Qwen2.5 Model Card](https://huggingface.co/Qwen/Qwen2.5-3B)
 - [Fastify Documentation](https://www.fastify.io/)
 - [React Documentation](https://react.dev/)
 
 ## Quick Run steps
-1. cd ai-chatbot/backend; chroma run --path ./chroma_data --port 8001
-2. cd ai-chatbot/backend; npm run dev
-3a. cd ai-chatbot/backend; npx tsx reset-chromadb.ts
-3b. cd ai-chatbot/scripts; npx tsx seed-docs.ts
-4. cd chromadb-admin-main; npm run dev
-5. cd ai-chatbot/frontend; npm run dev
+
+Prerequisite (one time): `ollama pull gemma4:e2b && ollama pull nomic-embed-text`.
+
+Each command below runs in its own terminal and stays running:
+
+1. **ChromaDB** — `cd ai-chatbot/backend && chroma run --path ./chroma_data --port 8001`
+2. **Backend** — `cd ai-chatbot/backend && npm run dev`
+3. **Seed / reset docs** (only when documentation changes):
+   - Reset the vector store: `cd ai-chatbot/backend && npx tsx reset-chromadb.ts`
+   - Re-seed documents: `cd ai-chatbot && npx tsx scripts/seed-docs.ts` (backend must be running)
+4. **(Optional) ChromaDB admin UI** — `cd chromadb-admin-main && npm run dev`
+5. **Frontend** — `cd ai-chatbot/frontend && npm run dev`
+
+Open the frontend at http://localhost:5173 and send a message — responses stream token-by-token via `/api/chat/stream`.
 
